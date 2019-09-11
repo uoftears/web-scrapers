@@ -1,4 +1,5 @@
 const fs = require('fs');
+const dnsPromise = require('dns').promises;
 const cheerio = require('cheerio');
 const axios = require('axios');
 const axiosCookieJarSupport = require('axios-cookiejar-support').default;
@@ -7,36 +8,31 @@ const tough = require('tough-cookie');
 axiosCookieJarSupport(axios);
 const cookieJar = new tough.CookieJar();
 
-const HOST_URL = 'http://coursefinder.utoronto.ca/course-search/search';
-const HOMEPAGE_URL = `${HOST_URL}/courseSearch?viewId=CourseSearch-FormView&methodToCall=start`;
-const QUERY_URL = `${HOST_URL}/courseSearch/course/search?queryText=&requirements=&campusParam=St.%20George,Scarborough,Mississauga`;
-const COURSE_DETAILS_URL = `${HOST_URL}/courseSearch/coursedetails`;
-
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const setCookie = async () => {
+const getSetCookie = async (url) => {
   console.log('Setting Cookie');
   await axios.get(
-    HOMEPAGE_URL,
+    url,
     { jar: cookieJar, withCredentials: true },
   );
 };
 
-const getCourseCodes = async () => {
+const getCourseCodes = async (url) => {
   console.log('Getting Course Codes');
   const courseCodeRegex = /offImg[a-zA-Z0-9]+"/g;
   const { data: { aaData } } = await axios.get(
-    QUERY_URL,
+    url,
     { jar: cookieJar, withCredentials: true },
   );
   const courseCodes = aaData.map(([aTag]) => aTag.match(courseCodeRegex)[0].replace(/(offImg|")/g, ''));
   return courseCodes;
 };
 
-const getCourseDetails = async (courseCode) => {
-  console.log('Getting Course Details', courseCode);
+const getCourseDetails = async (courseCode, url) => {
+  console.log('Getting', courseCode);
   const { data: html } = await axios.get(
-    `${COURSE_DETAILS_URL}/${courseCode}`,
+    `${url}/${courseCode}`,
     { jar: cookieJar, withCredentials: true },
   );
   const $ = cheerio.load(html);
@@ -67,18 +63,26 @@ const getCourseDetails = async (courseCode) => {
 // Run Scarper
 (async () => {
   try {
-    await setCookie();
-    const courseCodes = await getCourseCodes();
+    const { address } = await dnsPromise.lookup('coursefinder.utoronto.ca');
+    const HOST_URL = `http://${address}/course-search/search`;
+    const COOKIE_URL = `${HOST_URL}/courseSearch?viewId=CourseSearch-FormView&methodToCall=start`;
+    const COURSE_CODE_URL = `${HOST_URL}/courseSearch/course/search?queryText=&requirements=&campusParam=St.%20George,Scarborough,Mississauga`;
+    const COURSE_DETAILS_URL = `${HOST_URL}/courseSearch/coursedetails`;
+    await getSetCookie(COOKIE_URL);
+    const courseCodes = await getCourseCodes(COURSE_CODE_URL);
     const allCourses = [];
+    console.log(courseCodes.length, 'Course Codes');
     for (let i = 0; i < courseCodes.length; i += 10) {
       const chunk = courseCodes.slice(i, i + 10);
       // We want the delay in loop
       // eslint-disable-next-line no-await-in-loop
-      const courses = await Promise.all(chunk.map((code) => getCourseDetails(code)));
+      const courses = await Promise.all(
+        chunk.map((code) => getCourseDetails(code, COURSE_DETAILS_URL)),
+      );
       allCourses.push(...courses);
       // Wait 5 seconds;
       // eslint-disable-next-line no-await-in-loop
-      await timeout(5000);
+      await timeout(2500);
     }
     console.log('Writing to file');
     fs.writeFileSync('./courses.json', JSON.stringify(allCourses));
