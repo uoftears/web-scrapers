@@ -1,0 +1,30 @@
+{
+  "name": "web-scrapers",
+  "version": "1.0.0",
+  "description": "A collection of scrapers to retrieve university related data",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "axios-cookiejar-support": "^0.5.0",
+    "cheerio": "^1.0.0-rc.3",
+    "tough-cookie": "^3.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^6.3.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uoftears/web-scrapers.git"
+  },
+  "author": "Raymond Kwan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/uoftears/web-scrapers/issues"
+  },
+  "homepage": "https://github.com/uoftears/web-scrapers#readme"
+}
