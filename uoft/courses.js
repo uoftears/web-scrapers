@@ -66,8 +66,12 @@ const getCourseDetails = async (courseCode, url, tryCount = 0) => {
     else console.error(err);
   }
 };
-// Run Scarper
-(async () => {
+
+/**
+ * @param {number} [ms=2000] number in miliseconds
+ * to wait between batch requests to prevent rate limiting
+ */
+const startCourseScraper = async (ms = 2000) => {
   try {
     const { address } = await dnsPromise.lookup('coursefinder.utoronto.ca');
     const HOST_URL = `http://${address}/course-search/search`;
@@ -88,11 +92,13 @@ const getCourseDetails = async (courseCode, url, tryCount = 0) => {
       allCourses.push(...courses);
       // Wait 5 seconds;
       // eslint-disable-next-line no-await-in-loop
-      await timeout(2500);
+      await timeout(ms);
     }
     console.log('Writing to file');
-    fs.writeFileSync('./courses.json', JSON.stringify(allCourses));
+    fs.writeFileSync('./output/courses.json', JSON.stringify(allCourses));
   } catch (err) {
     console.error(err);
   }
-})();
+};
+
+module.exports = startCourseScraper;
