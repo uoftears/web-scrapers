@@ -29,36 +29,42 @@ const getCourseCodes = async (url) => {
   return courseCodes;
 };
 
-const getCourseDetails = async (courseCode, url) => {
-  console.log('Getting', courseCode);
-  const { data: html } = await axios.get(
-    `${url}/${courseCode}`,
-    { jar: cookieJar, withCredentials: true },
-  );
-  const $ = cheerio.load(html);
-  const courseName = $('span.uif-headerText-span').text().replace(/[A-Z0-9]+: /, '');
-  const division = $('span#u23').text().trim();
-  const description = $('span#u32').text().trim();
-  const department = $('span#u41').text().trim();
-  const preReq = $('span#u50').text().trim();
-  const exclusion = $('span#u68').text().trim();
-  const level = $('span#u86').text().trim();
-  const breadth = $('span#u104').text().trim();
-  const campus = $('span#u149').text().trim();
-  const term = $('span#u158').text().trim();
-  return {
-    courseCode,
-    courseName,
-    division,
-    description,
-    department,
-    preReq,
-    exclusion,
-    level,
-    breadth,
-    campus,
-    term,
-  };
+const getCourseDetails = async (courseCode, url, tryCount = 0) => {
+  try {
+    console.log('Getting', courseCode);
+    const { data: html } = await axios.get(
+      `${url}/${courseCode}`,
+      { jar: cookieJar, withCredentials: true },
+    );
+    const $ = cheerio.load(html);
+    const courseName = $('span.uif-headerText-span').text().replace(/[A-Z0-9]+: /, '');
+    const division = $('span#u23').text().trim();
+    const description = $('span#u32').text().trim();
+    const department = $('span#u41').text().trim();
+    const preReq = $('span#u50').text().trim();
+    const exclusion = $('span#u68').text().trim();
+    const level = $('span#u86').text().trim();
+    const breadth = $('span#u104').text().trim();
+    const campus = $('span#u149').text().trim();
+    const term = $('span#u158').text().trim();
+    return {
+      courseCode,
+      courseName,
+      division,
+      description,
+      department,
+      preReq,
+      exclusion,
+      level,
+      breadth,
+      campus,
+      term,
+    };
+  } catch (err) {
+    // Retry 3 times before failing silently
+    if (tryCount < 3) await getCourseDetails(courseCode, url, tryCount + 1);
+    else console.error(err);
+  }
 };
 // Run Scarper
 (async () => {
