@@ -47,8 +47,20 @@ const getCourseDetails = async (courseCode, url, tryCount = 0) => {
     const breadth = $('span#u104').text().trim();
     const campus = $('span#u149').text().trim();
     const term = $('span#u158').text().trim();
+    const tableElement = $('table#u172').find('tbody');
+    const tableRows = [];
+    $(tableElement).find('tr').each((i, ele) => tableRows.push(ele));
+    const meetings = tableRows.map((row) => {
+      const [
+        activity, dayTime, instructor, location, size, enrolment,, mode,
+      ] = $(row).find('td').map((i, ele) => $(ele).text().trim()).get();
+      const hasWaitlist = /checkmark.png/.test($(row).find('img').attr('src'));
+      return {
+        activity, dayTime, instructor, location, size, enrolment, hasWaitlist, mode,
+      };
+    });
     return {
-      courseCode,
+      courseCode: courseCode.slice(0, -5),
       courseName,
       division,
       description,
@@ -59,6 +71,7 @@ const getCourseDetails = async (courseCode, url, tryCount = 0) => {
       breadth,
       campus,
       term,
+      meetings,
     };
   } catch (err) {
     // Retry 3 times before failing silently
@@ -90,7 +103,7 @@ const startCourseScraper = async (ms = 2000) => {
         chunk.map((code) => getCourseDetails(code, COURSE_DETAILS_URL)),
       );
       allCourses.push(...courses);
-      // Wait 5 seconds;
+      // Wait for timeout to prevent rate limiting;
       // eslint-disable-next-line no-await-in-loop
       await timeout(ms);
     }
